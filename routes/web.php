@@ -100,6 +100,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/transaksispp/cetak', [TransaksiSPPController::class, 'cetakLaporan'])->name('transaksispp.cetak');
+    Route::get('/export-tahunan', [PembayaranTagihanController::class, 'exportTahunan'])->name('export.tahunan');
 
 
     Route::get('/riwayattransaksi', [RiwayatTransaksiController::class, 'index']);

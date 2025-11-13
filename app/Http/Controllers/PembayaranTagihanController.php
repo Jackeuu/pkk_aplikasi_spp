@@ -56,14 +56,18 @@ class PembayaranTagihanController extends Controller
         return redirect()->back()->with('success', 'Pembayaran berhasil disimpan');
     }
 
-    public function history()
+    public function history(Request $request)
     {
+        $tahun = $request->tahun ?? date('Y');
+
         $data = PembayaranTagihan::join('siswa', 'siswa.nis', '=', 'pembayaran_tagihan.nis')
-            ->join('tuangdaftarulang', 'tuangdaftarulang.idudu', '=', 'siswa.idudu', 'Left')->get();
+            ->join('tuangdaftarulang', 'tuangdaftarulang.idudu', '=', 'siswa.idudu', 'Left')
+            ->whereYear('pembayaran_tagihan.tanggal_bayar', $tahun)
+            ->get();
 
-
-        return view('riwayattransaksi.index', compact('data'));
+        return view('riwayattransaksi.index', compact('data', 'tahun'));
     }
+
 
     public function kuitansi($id)
     {
@@ -87,4 +91,21 @@ class PembayaranTagihanController extends Controller
         $pdf = Pdf::loadView('transaksidu.kuitansi_pdf', compact('data'))->setPaper('A5', 'portrait');
         return $pdf->download('kuitansi-daftar-ulang-' . $data->id . '.pdf');
     }
+
+    public function exportTahunan(Request $request)
+    {
+        $tahun = $request->tahun ?? date('Y');
+
+        $data = PembayaranTagihan::join('siswa', 'siswa.nis', '=', 'pembayaran_tagihan.nis')
+            ->join('tkelas', 'tkelas.idk', '=', 'siswa.idk')
+            ->whereYear('pembayaran_tagihan.tanggal_bayar', $tahun)
+            ->select('pembayaran_tagihan.*', 'siswa.nama_siswa', 'siswa.nis', 'tkelas.nama_kelas')
+            ->get();
+
+        $pdf = Pdf::loadView('riwayattransaksi.laporan_tahunan_pdf', compact('data', 'tahun'))
+            ->setPaper('A4', 'landscape');
+
+        return $pdf->download('laporan-daftar-ulang-' . $tahun . '.pdf');
+    }
+
 }

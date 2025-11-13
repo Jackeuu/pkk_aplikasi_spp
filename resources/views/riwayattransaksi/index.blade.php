@@ -13,24 +13,18 @@
                         <div class="dt-buttons btn-group flex-wrap mb-0">
 
 
-                            <form action="/export-bulanan" method="GET">
-                                <select name="bulan" class="form-select">
-                                    <option value="1">Januari</option>
-                                    <option value="2">Februari</option>
-                                    <option value="3">Maret</option>
-                                    <option value="4">April</option>
-                                    <option value="5">Mei</option>
-                                    <option value="6">Juni</option>
-                                    <option value="7">Juli</option>
-                                    <option value="8">Agustus</option>
-                                    <option value="9">September</option>
-                                    <option value="10">Oktober</option>
-                                    <option value="11">November</option>
-                                    <option value="12">Desember</option>
-                                    
+                            <form action="{{ route('export.tahunan') }}" method="GET">
+                                <select name="tahun" class="form-select">
+                                    @php $tahunSekarang = date('Y'); @endphp
+                                    @for ($tahun = 2020; $tahun <= $tahunSekarang; $tahun++)
+                                        <option value="{{ $tahun }}" {{ $tahun == $tahunSekarang ? 'selected' : '' }}>
+                                            {{ $tahun }}
+                                        </option>
+                                    @endfor
                                 </select>
                                 <button class="btn btn-success mt-2">Cetak Laporan</button>
                             </form>
+
 
 
 
