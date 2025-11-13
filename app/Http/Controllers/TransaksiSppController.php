@@ -41,14 +41,17 @@ class TransaksiSppController extends Controller
         }
 
         foreach ($request->bulan as $bulan) {
+            $tanggalBayar = now()->setMonth($bulan)->startOfMonth(); // tanggal 1 di bulan terpilih
+
             TransaksiSpp::create([
                 'nis' => $request->nis,
-                'tanggalBayar' => now(),
+                'tanggalBayar' => $tanggalBayar,
                 'bulan' => $bulan,
                 'tahunBayar' => now()->format('Y'),
                 'idp' => Auth::user()->idp,
             ]);
         }
+
 
         // untuk transaksi
         ActivityLog::create([
@@ -69,8 +72,4 @@ class TransaksiSppController extends Controller
         $bulan = $request->bulan; // dropdown dari view
         return Excel::download(new LaporanSPPBulananExport($bulan), 'Laporan-SPP-' . $bulan . '.xlsx');
     }
-
-
-
-
 }

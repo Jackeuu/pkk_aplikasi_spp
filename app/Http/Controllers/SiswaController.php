@@ -133,20 +133,20 @@ class SiswaController extends Controller
 
                 // Atur SPP Baru
                 if (in_array($s->idk, [1, 2])) {
-                    $s->idspp = 1;
+                    $s->idspp = 1; // Rp.400.000
                 } elseif ($s->idk == 3) {
-                    $s->idspp = 2;
+                    $s->idspp = 2; // Rp.350.000
                 } elseif (in_array($s->idk, [4, 5, 6])) {
-                    $s->idspp = 3;
+                    $s->idspp = 3; // Rp.375.000
                 }
 
-                // Tentukan ID Uang DU berdasarkan kelas baru
-                if ($s->idk == 2) {
-                    $idUang = 1;
+                // Tentukan ID Uang Daftar Ulang berdasarkan kelas baru
+                if (in_array($s->idk, [1, 2])) {
+                    $idUang = 1; // Rp.3.000.000
                 } elseif ($s->idk == 3) {
-                    $idUang = 2;
+                    $idUang = 2; // Rp.2.950.000
                 } elseif (in_array($s->idk, [4, 5, 6])) {
-                    $idUang = 3;
+                    $idUang = 3; // Rp.2.975.000
                 } else {
                     $idUang = null;
                 }
@@ -158,32 +158,56 @@ class SiswaController extends Controller
                 // Jika memiliki uang daftar ulang
                 if ($idUang) {
                     $uang = UangDaftarUlang::find($idUang);
+                    if (!$uang)
+                        continue; // kalau data tidak ditemukan, skip
 
-                    // Reset / Update Tagihan Daftar Ulang
+                    // Ambil tagihan aktif siswa
                     $tagihan = Tagihan::where('nis', $s->nis)->first();
 
-                    $sisa_tagihan = PembayaranTagihan::where('nis', $s->nis)->orderBy('id', 'DESC')->first();
+                    // Ambil pembayaran terakhir siswa (bisa null)
+                    $sisa_tagihan = PembayaranTagihan::where('nis', $s->nis)
+                        ->orderBy('id', 'DESC')
+                        ->first();
 
-                    if ($sisa_tagihan->sisa != 0) {
-                        $tagihan->update([
-                            'jumlah' => $uang->nominal_du + $sisa_tagihan->sisa,
-                            'status' => 'Belum lunas', // <-- Reset otomatis
-                        ]);
-                    } else if ($sisa_tagihan == 0) {
-                        Tagihan::create([
-                            'nis' => $s->nis,
-                            'jumlah' => $uang->nominal_du,
-                            'status' => 'Belum lunas',
-                        ]);
+                    // Jika siswa pernah membayar sebelumnya dan masih ada sisa
+                    if ($sisa_tagihan && $sisa_tagihan->sisa != 0) {
+                        if ($tagihan) {
+                            $tagihan->update([
+                                'jumlah' => $uang->nominal_du + $sisa_tagihan->sisa,
+                                'status' => 'Belum lunas',
+                            ]);
+                        } else {
+                            Tagihan::create([
+                                'nis' => $s->nis,
+                                'jumlah' => $uang->nominal_du + $sisa_tagihan->sisa,
+                                'status' => 'Belum lunas',
+                            ]);
+                        }
+                    } else {
+                        // Jika belum pernah membayar daftar ulang sebelumnya
+                        Tagihan::updateOrCreate(
+                            ['nis' => $s->nis],
+                            [
+                                'jumlah' => $uang->nominal_du,
+                                'status' => 'Belum lunas',
+                            ]
+                        );
                     }
                 }
             } else {
-                // kelas 6 -> pindah ke alumni atau delete
+                // Jika kelas 6 -> dihapus atau dipindahkan ke alumni
                 $s->delete();
             }
         }
 
+        // Catat aktivitas
+        ActivityLog::create([
+            'user' => Auth::user()->nama_pengguna ?? 'System',
+            'aksi' => 'Menjalankan kenaikan kelas otomatis untuk semua siswa'
+        ]);
+
         return back()->with('success', 'Kenaikan kelas berhasil diproses!');
     }
+
 
 }
